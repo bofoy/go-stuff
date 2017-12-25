@@ -12,9 +12,9 @@ func main() {
 	bst.Insert(7)
 	bst.Insert(8)
 	bst.Insert(4)
-	n, err := bst.Insert(2)
+	err := bst.Insert(2)
 	bst.Delete(5)
-	fmt.Printf("%d %s\n", n.Value, err)
+	fmt.Printf("%s\n", err)
 
 	found, _ := bst.Find(4)
 	fmt.Println(found)
