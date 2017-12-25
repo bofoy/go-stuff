@@ -6,13 +6,13 @@ import (
 )
 
 type Tree struct {
-	Root *node
+	Root *Node
 }
 
 // lowercase things are not exported
-type node struct {
-	Left  *node
-	Right *node
+type Node struct {
+	Left  *Node
+	Right *Node
 	Value int
 }
 
@@ -21,88 +21,112 @@ type node struct {
 // Use pointer receiver when method should modify the Value the receiver points
 // to. Also used to avoid copying Value on each method call since everything in
 // Go is pass by Value
-func (t *Tree) Insert(Value int) *node {
+func (t *Tree) Insert(value int) (insert *Node, err error) {
 	if t == nil {
-		t = &Tree{&node{Value: Value}}
+		t = &Tree{&Node{Value: value}}
 	} else if t.Root == nil {
-		t.Root = &node{Value: Value}
+		t.Root = &Node{Value: value}
 	} else {
-		return t.Root.insert(Value)
+		return t.Root.insert(value)
 	}
-	return t.Root
+	return t.Root, nil
 }
 
-func (t *Tree) Delete(Value int) (*node, error) {
+func (t *Tree) Delete(value int) error {
 	if t == nil {
-		return t.Root, errors.New("Tree is empty, cannot delete node")
+		return errors.New("Tree is empty, cannot delete Node")
 	}
-	return t.Root.delete(Value)
+	return t.Root.delete(value, t.Root)
 }
 
-func (t *Tree) Find(Value int) (*node, error) {
+func (t *Tree) Find(value int) (bool, error) {
 	if t == nil {
-		return t.Root, errors.New("Tree is empty, cannot find node")
+		return false, errors.New("Tree is empty, cannot find Node")
+	} else if t.Root.find(value) == true {
+		return true, nil
+	} else {
+		return false, nil
 	}
-	return t.Root.find(Value)
 }
 
-func (n *node) insert(Value int) *node {
-	if Value < n.Value {
-		if n.Left == nil { // if node is nil insert new node as Left child
-			n.Left = &node{Value: Value}
+func (n *Node) insert(value int) (insert *Node, err error) {
+	if value < n.Value {
+		if n.Left == nil { // if Node is nil insert new Node as Left child
+			n.Left = &Node{Value: value}
 		}
-		// recursively traverse Left node and return node inserted
-		return n.Left.insert(Value)
-	} else if Value > n.Value {
-		if n.Right == nil { // if node is nil insert new node as Right child
-			n.Right = &node{Value: Value}
+		// recursively traverse Left Node and return Node inserted
+		return n.Left.insert(value)
+	} else if value > n.Value {
+		if n.Right == nil { // if Node is nil insert new Node as Right child
+			n.Right = &Node{Value: value}
 		}
-		// recursively traverse Right node and return node inserted
-		return n.Right.insert(Value)
+		// recursively traverse Right Node and return Node inserted
+		return n.Right.insert(value)
 	}
-	return n
+	return n, fmt.Errorf("Value %d already exists", value)
 }
 
-// finds max value of a subtree
-func (n *node) findMax(parent *node) (node *node, p *node) {
+// finds max Node of a subtree and its parent Node
+func (n *Node) findMax(parent *Node) (Node *Node, p *Node) {
 	if n.Right == nil {
 		return n, parent
 	}
 	return n.Right.findMax(n)
 }
 
-func (n *node) delete(Value int) (node *node, err error) {
-	if Value == n.Value {
-		n = nil
-	} else if Value < n.Value {
-		if n.Left == nil {
-			return nil, errors.New("Node not found, cannot be deleted")
-		}
-		n.Left.delete(Value)
-	} else if Value > n.Value {
-		if n.Right == nil {
-			return nil, errors.New("Node not found, cannot be deleted")
-		}
-		n.Right.delete(Value)
+// replaces parent's child pointer from n to replacement
+func (n *Node) replaceNode(parent *Node, replacement *Node) {
+	if n == parent.Left {
+		parent.Left = replacement
+	} else {
+		parent.Right = replacement
 	}
-	return n, nil
 }
 
-func (n *node) find(Value int) (*node, error) {
-	if Value == n.Value {
-		fmt.Printf("%d exists\n", Value)
-	} else if Value < n.Value {
+func (n *Node) delete(value int, parent *Node) error {
+	if n == nil {
+		return errors.New("Value to be deleted does not exist in tree")
+	} else if value < n.Value {
+		n.Left.delete(value, n)
+	} else if value > n.Value {
+		n.Right.delete(value, n)
+	} else { // found Node to be deleted
+		if n.Left == nil && n.Right == nil { // leaf Node
+			n.replaceNode(parent, nil) // if no children, then simply set to nil
+		}
+		// if one child, point parent to either the left or right child
 		if n.Left == nil {
-			return nil, errors.New("Node not found")
+			n.replaceNode(parent, n.Right)
+			return nil
 		}
-		// recursively traverse Left node and return the node found
-		return n.Left.find(Value)
-	} else if Value > n.Value {
 		if n.Right == nil {
-			return nil, errors.New("Node not found")
+			n.replaceNode(parent, n.Left)
+			return nil
 		}
-		// recursively traverse Right node and return the node found
-		return n.Right.find(Value)
+
+		// if Node has 2 children, recursively find the max of the
+		// left subtree and its parent Node
+		replacement, replParent := n.Left.findMax(n)
+		n.Value = replacement.Value
+
+		return replacement.delete(replacement.Value, replParent)
 	}
-	return n, nil
+	return nil
+}
+
+func (n *Node) find(value int) bool {
+	if value == n.Value {
+		return true
+	} else if value < n.Value {
+		if n.Left == nil {
+			return false
+		}
+		// recursively traverse Left Node and return the Node found
+		return n.Left.find(value)
+	}
+	if n.Right == nil {
+		return false
+	}
+	// recursively traverse Right Node and return the Node found
+	return n.Right.find(value)
 }
