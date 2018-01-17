@@ -15,8 +15,8 @@ func main() {
 	err := bst.Insert(2)
 	bst.Delete(5)
 	fmt.Printf("%s\n", err)
-
-	found, _ := bst.Find(4)
+	fmt.Printf("Value is: %d\n", bst.Root.right.right.value)
+	found, _ := bst.Find(2)
 	fmt.Println(found)
 	//f, p := bst.Root.Left.findMax(nil)
 	//fmt.Printf("%d %d\n", f.Value, p.Value)

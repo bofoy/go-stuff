@@ -27,43 +27,37 @@ func (t *Tree) Insert(value int) error {
 	} else if t.Root == nil {
 		t.Root = &node{value: value}
 	} else {
-		return t.Root.insert(value)
+		_, err := t.Root.insert(value)
+		return err
 	}
 	return nil
 }
 
 func (t *Tree) Delete(value int) error {
-	if t == nil {
-		return errors.New("Tree is empty, cannot delete node")
+	if t == nil || t.Root == nil {
+		return errors.New("Tree is empty, cannot delete from empty tree")
 	}
 	return t.Root.delete(value, t.Root)
 }
 
 func (t *Tree) Find(value int) (bool, error) {
-	if t == nil {
-		return false, errors.New("Tree is empty, cannot find node")
-	} else if t.Root.find(value) == true {
-		return true, nil
-	} else {
-		return false, nil
+	if t == nil || t.Root == nil {
+		return false, errors.New("Tree is empty, cannot search empty tree")
 	}
+	return t.Root.find(value), nil
 }
 
-func (n *node) insert(value int) error {
-	if value < n.value {
-		if n.left == nil { // if node is nil insert new node as left child
-			n.left = &node{value: value}
-		}
-		// recursively traverse left node and return node inserted
-		n.left.insert(value)
-	} else if value > n.value {
-		if n.right == nil { // if node is nil insert new node as right child
-			n.right = &node{value: value}
-		}
-		// recursively traverse right node and return node inserted
-		n.right.insert(value)
+func (n *node) insert(value int) (*node, error) {
+	if n == nil {
+		return &node{value: value}, nil
+	} else if value < n.value { // if node is nil insert new node as left child
+		node, _ := n.left.insert(value)
+		n.left = node
+	} else if value > n.value { // if node is nil insert new node as right child
+		node, _ := n.right.insert(value)
+		n.right = node
 	}
-	return fmt.Errorf("Value %d already exists", value)
+	return n, fmt.Errorf("Value %d already exists", value)
 }
 
 // finds max node of a subtree and its parent node
@@ -75,7 +69,7 @@ func (n *node) findMax(parent *node) (node *node, p *node) {
 }
 
 // replaces parent's child pointer from n to replacement
-func (n *node) replacenode(parent *node, replacement *node) {
+func (n *node) replaceNode(parent *node, replacement *node) {
 	if n == parent.left {
 		parent.left = replacement
 	} else {
@@ -92,15 +86,15 @@ func (n *node) delete(value int, parent *node) error {
 		n.right.delete(value, n)
 	} else { // found node to be deleted
 		if n.left == nil && n.right == nil { // leaf node
-			n.replacenode(parent, nil) // if no children, then simply set to nil
+			n.replaceNode(parent, nil) // if no children, then simply set to nil
 		}
 		// if one child, point parent to either the left or right child
 		if n.left == nil {
-			n.replacenode(parent, n.right)
+			n.replaceNode(parent, n.right)
 			return nil
 		}
 		if n.right == nil {
-			n.replacenode(parent, n.left)
+			n.replaceNode(parent, n.left)
 			return nil
 		}
 
@@ -118,15 +112,13 @@ func (n *node) find(value int) bool {
 	if value == n.value {
 		return true
 	} else if value < n.value {
-		if n.left == nil {
-			return false
+		if n.left != nil {
+			return n.left.find(value)
 		}
-		// recursively traverse left node and return the node found
-		return n.left.find(value)
+	} else if value > n.value {
+		if n.right != nil {
+			return n.right.find(value)
+		}
 	}
-	if n.right == nil {
-		return false
-	}
-	// recursively traverse right node and return the node found
-	return n.right.find(value)
+	return false
 }
